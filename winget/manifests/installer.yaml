@@ -1,20 +1,20 @@
 # yaml-language-server: $schema=https://aka.ms/winget-manifest.installer.1.12.0.schema.json
 PackageIdentifier: harshmendhe-arch.dhriti
-PackageVersion: 0.1.4
+PackageVersion: 0.1.5
 Platform:
   - Windows.Desktop
 InstallerType: zip
 Installers:
   - Architecture: x64
-    InstallerUrl: https://github.com/harshmendhe-arch/dhriti/releases/download/0.1.4/dhriti-windows-x86_64.zip
-    InstallerSha256: 01B4563DE141C3E6919FF0D3E84ED64E5FE4FC8F1763413B35FB6146C3B59585
+    InstallerUrl: https://github.com/harshmendhe-arch/dhriti/releases/download/0.1.5/dhriti-windows-x86_64.zip
+    InstallerSha256: 00F2B6D38F631E1CC7E68058108544D7107B4355C065C2EE536152DE0014DE3A
     NestedInstallerType: portable
     NestedInstallerFiles:
       - RelativeFilePath: dhriti.exe
         PortableCommandAlias: dhriti
   - Architecture: arm64
-    InstallerUrl: https://github.com/harshmendhe-arch/dhriti/releases/download/0.1.4/dhriti-windows-arm64.zip
-    InstallerSha256: 6D5A80C1FABFB08D5233A854340C49003EDD684CE49435352580652A5541BDF4
+    InstallerUrl: https://github.com/harshmendhe-arch/dhriti/releases/download/0.1.5/dhriti-windows-arm64.zip
+    InstallerSha256: 37D6B1AA59B7B918A862A63F92E86E983AEE756C7A1DFB03DAB16259BAD6BC7A
     NestedInstallerType: portable
     NestedInstallerFiles:
       - RelativeFilePath: dhriti.exe
