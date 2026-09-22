@@ -11,8 +11,6 @@ Please follow [Crush][crush] for ongoing development.
 
 # ⌬ Dhriti
 
-<p align="center"><img src="https://github.com/user-attachments/assets/9ae61ef6-70e5-4876-bc45-5bcb4e52c714" width="800"></p>
-
 > **⚠️ Early Development Notice:** This project is in early development and is not yet ready for production use. Features may change, break, or be incomplete. Use at your own risk.
 
 A powerful terminal-based AI assistant for developers, providing intelligent coding assistance directly in your terminal.
@@ -20,11 +18,6 @@ A powerful terminal-based AI assistant for developers, providing intelligent cod
 ## Overview
 
 Dhriti is a Go-based CLI application that brings AI assistance to your terminal. It provides a TUI (Terminal User Interface) for interacting with various AI models to help with coding tasks, debugging, and more.
-
-<p>For a quick video overview, check out
-<a href="https://www.youtube.com/watch?v=P8luPmEa1QI"><img width="25" src="https://upload.wikimedia.org/wikipedia/commons/0/09/YouTube_full-color_icon_%282017%29.svg"> Upstream demo video (OpenCode + Gemini 2.5 Pro)</a></p>
-
-<a href="https://www.youtube.com/watch?v=P8luPmEa1QI"><img width="550" src="https://i3.ytimg.com/vi/P8luPmEa1QI/maxresdefault.jpg"></a><p>
 
 ## Features
 

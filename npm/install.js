@@ -36,8 +36,8 @@ function releaseUrl() {
   if (VERSION === "latest") {
     return `https://github.com/${REPO}/releases/latest/download/${name}`;
   }
-  const v = VERSION.startsWith("v") ? VERSION : "v" + VERSION;
-  return `https://github.com/${REPO}/releases/download/${v}/${name}`;
+  const tag = VERSION.replace(/^v/, "");
+  return `https://github.com/${REPO}/releases/download/${tag}/${name}`;
 }
 
 function follow(url, redirects = 5) {
@@ -80,39 +80,55 @@ async function main() {
     process.platform === "win32" ? "dhriti.exe" : "dhriti"
   );
 
+  const extractDir = path.join(tmp, "extracted");
+  fs.mkdirSync(extractDir, { recursive: true });
+
   if (ext === "tar.gz") {
-    const r = spawnSync("tar", ["-xzf", archive, "-C", tmp], { stdio: "inherit" });
-    if (r.status !== 0) throw new Error("tar extract failed");
+    const r = spawnSync("tar", ["-xzf", archive, "-C", extractDir], {
+      stdio: ["ignore", "inherit", "inherit"],
+    });
+    if (r.status !== 0) {
+      throw new Error(`tar extract failed (exit ${r.status})`);
+    }
   } else {
-    const r = spawnSync(
-      "powershell",
-      ["-Command", `Expand-Archive -Path '${archive}' -DestinationPath '${tmp}' -Force`],
-      { stdio: "inherit" }
-    );
-    if (r.status !== 0) throw new Error("unzip failed");
+    // Windows 10+ ships bsdtar, which handles zip; avoid Expand-Archive quirks.
+    let r = spawnSync("tar", ["-xf", archive, "-C", extractDir], {
+      stdio: ["ignore", "inherit", "inherit"],
+    });
+    if (r.status !== 0) {
+      r = spawnSync(
+        "powershell.exe",
+        [
+          "-NoProfile",
+          "-NonInteractive",
+          "-Command",
+          `Expand-Archive -LiteralPath '${archive}' -DestinationPath '${extractDir}' -Force`,
+        ],
+        { stdio: ["ignore", "inherit", "inherit"] }
+      );
+    }
+    if (r.status !== 0) {
+      throw new Error(
+        `unzip failed (exit ${r.status}${r.error ? ": " + r.error.message : ""})`
+      );
+    }
   }
 
-  const extracted = path.join(tmp, process.platform === "win32" ? "dhriti.exe" : "dhriti");
-  if (!fs.existsSync(extracted)) {
-    // search
-    const walk = (dir) => {
-      for (const e of fs.readdirSync(dir, { withFileTypes: true })) {
-        const p = path.join(dir, e.name);
-        if (e.isDirectory()) {
-          const f = walk(p);
-          if (f) return f;
-        } else if (e.name === "dhriti" || e.name === "dhriti.exe") {
-          return p;
-        }
+  const findBinary = (dir) => {
+    for (const e of fs.readdirSync(dir, { withFileTypes: true })) {
+      const p = path.join(dir, e.name);
+      if (e.isDirectory()) {
+        const f = findBinary(p);
+        if (f) return f;
+      } else if (e.name === "dhriti" || e.name === "dhriti.exe") {
+        return p;
       }
-      return null;
-    };
-    const found = walk(tmp);
-    if (!found) throw new Error("binary not found in archive");
-    fs.copyFileSync(found, destBin);
-  } else {
-    fs.copyFileSync(extracted, destBin);
-  }
+    }
+    return null;
+  };
+  const found = findBinary(extractDir);
+  if (!found) throw new Error("binary not found in archive");
+  fs.copyFileSync(found, destBin);
 
   if (process.platform !== "win32") {
     fs.chmodSync(destBin, 0o755);
