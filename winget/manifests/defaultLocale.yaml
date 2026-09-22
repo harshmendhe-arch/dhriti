@@ -6,6 +6,7 @@ Publisher: harshmendhe-arch
 PackageName: Dhriti
 PackageUrl: https://github.com/harshmendhe-arch/dhriti
 License: MIT
+LicenseUrl: https://github.com/harshmendhe-arch/dhriti/blob/main/LICENSE
 ShortDescription: Terminal-based AI assistant with WebSocket gateway support
 ManifestType: defaultLocale
 ManifestVersion: 1.6.0
