@@ -218,16 +218,42 @@ func Load(workingDir string, debug bool) (*Config, error) {
 		return cfg, fmt.Errorf("config validation failed: %w", err)
 	}
 
+	// Always materialize required agents so startup never fails with
+	// "agent coder not found" when no keys/gateway are configured yet.
+	// Credentials are checked later when the provider client is created.
+	ensureRequiredAgents()
+	return cfg, nil
+}
+
+// ensureRequiredAgents fills in the agents the app always needs.
+// It runs after Validate so a missing provider yields a clear
+// createAgentProvider error instead of an unknown-agent error, and so
+// `dhriti login` can Load config before any keys exist.
+func ensureRequiredAgents() {
 	if cfg.Agents == nil {
 		cfg.Agents = make(map[AgentName]Agent)
 	}
 
-	// Override the max tokens for title agent
-	cfg.Agents[AgentTitle] = Agent{
-		Model:     cfg.Agents[AgentTitle].Model,
-		MaxTokens: 80,
+	defaults := map[AgentName]Agent{
+		AgentCoder:      {Model: models.GPT41},
+		AgentSummarizer: {Model: models.GPT41},
+		AgentTask:       {Model: models.GPT41Mini},
+		AgentTitle:      {Model: models.GPT41Mini, MaxTokens: 80},
 	}
-	return cfg, nil
+	for name, def := range defaults {
+		agent, ok := cfg.Agents[name]
+		if !ok {
+			cfg.Agents[name] = def
+			continue
+		}
+		if agent.Model == "" {
+			agent.Model = def.Model
+		}
+		if name == AgentTitle {
+			agent.MaxTokens = 80
+		}
+		cfg.Agents[name] = agent
+	}
 }
 
 // configureViper sets up viper's configuration paths and environment variables.

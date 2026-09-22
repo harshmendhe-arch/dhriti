@@ -24,6 +24,8 @@ import (
 var rootCmd = &cobra.Command{
 	Use:   "dhriti",
 	Short: "Terminal-based AI assistant for software development",
+	// Runtime errors (missing credentials, etc.) should not dump usage.
+	SilenceUsage: true,
 	Long: `Dhriti is a powerful terminal-based AI assistant that helps with software development tasks.
 It provides an interactive chat interface with AI capabilities, code analysis, and LSP integration
 to assist developers in writing, debugging, and understanding code directly from the terminal.`,

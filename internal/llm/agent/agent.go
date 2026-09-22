@@ -707,27 +707,24 @@ func createAgentProvider(agentName config.AgentName) (provider.Provider, error) 
 	cfg := config.Get()
 	agentConfig, ok := cfg.Agents[agentName]
 	if !ok {
-		return nil, fmt.Errorf("agent %s not found", agentName)
+		return nil, fmt.Errorf("agent %q is not configured; run `dhriti login` or add agents.%s to your config", agentName, agentName)
 	}
 	model, ok := models.SupportedModels[agentConfig.Model]
 	if !ok {
 		return nil, fmt.Errorf("model %s not supported", agentConfig.Model)
 	}
 
-	providerCfg, ok := cfg.Providers[model.Provider]
-	if !ok && !cfg.GatewayEnabled() {
-		return nil, fmt.Errorf("provider %s not supported", model.Provider)
+	providerCfg, hasProvider := cfg.Providers[model.Provider]
+	apiKey := ""
+	if hasProvider {
+		apiKey = strings.TrimSpace(providerCfg.APIKey)
 	}
-	if ok && providerCfg.Disabled && !cfg.GatewayEnabled() {
-		return nil, fmt.Errorf("provider %s is not enabled", model.Provider)
+	if !cfg.GatewayEnabled() && (!hasProvider || apiKey == "" || providerCfg.Disabled) {
+		return nil, fmt.Errorf("no LLM credentials for provider %q (agent %s, model %s); run `dhriti login` or set OPENAI_API_KEY / GEMINI_API_KEY", model.Provider, agentName, model.ID)
 	}
 	maxTokens := model.DefaultMaxTokens
 	if agentConfig.MaxTokens > 0 {
 		maxTokens = agentConfig.MaxTokens
-	}
-	apiKey := ""
-	if ok {
-		apiKey = providerCfg.APIKey
 	}
 	opts := []provider.ProviderClientOption{
 		provider.WithAPIKey(apiKey),
