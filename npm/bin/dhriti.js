@@ -5,12 +5,13 @@ const { spawnSync } = require("child_process");
 const path = require("path");
 const fs = require("fs");
 
-const bin = path.join(
-  __dirname,
-  process.platform === "win32" ? "dhriti.exe" : "dhriti"
-);
+const candidates = [
+  path.join(__dirname, process.platform === "win32" ? "dhriti.exe" : "dhriti"),
+  path.join(__dirname, "..", process.platform === "win32" ? "dhriti.exe" : "dhriti"),
+];
+const bin = candidates.find((p) => fs.existsSync(p));
 
-if (!fs.existsSync(bin)) {
+if (!bin) {
   console.error(
     "dhriti binary not found. Run: node install.js (or reinstall the package)."
   );
