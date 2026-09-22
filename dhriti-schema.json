@@ -1,0 +1,317 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "definitions": {
+    "agent": {
+      "description": "Agent configuration",
+      "properties": {
+        "maxTokens": {
+          "description": "Maximum tokens for the agent",
+          "minimum": 1,
+          "type": "integer"
+        },
+        "model": {
+          "description": "Model ID for the agent",
+          "enum": [
+            "gemini-2.5-flash",
+            "gpt-4.1-nano",
+            "o1-mini",
+            "gemini-2.0-flash-lite",
+            "o3-mini",
+            "o4-mini",
+            "gemini-2.5",
+            "o1-pro",
+            "gpt-4o",
+            "gpt-4o-mini",
+            "o3",
+            "gemini-2.0-flash",
+            "gpt-4.1",
+            "o1",
+            "gpt-4.1-mini",
+            "gpt-4.5-preview"
+          ],
+          "type": "string"
+        },
+        "reasoningEffort": {
+          "description": "Reasoning effort for models that support it (OpenAI)",
+          "enum": [
+            "low",
+            "medium",
+            "high"
+          ],
+          "type": "string"
+        }
+      },
+      "required": [
+        "model"
+      ],
+      "type": "object"
+    }
+  },
+  "description": "Configuration schema for the Dhriti application",
+  "properties": {
+    "agents": {
+      "additionalProperties": {
+        "description": "Agent configuration",
+        "properties": {
+          "maxTokens": {
+            "description": "Maximum tokens for the agent",
+            "minimum": 1,
+            "type": "integer"
+          },
+          "model": {
+            "description": "Model ID for the agent",
+            "enum": [
+              "gemini-2.5-flash",
+              "gpt-4.1-nano",
+              "o1-mini",
+              "gemini-2.0-flash-lite",
+              "o3-mini",
+              "o4-mini",
+              "gemini-2.5",
+              "o1-pro",
+              "gpt-4o",
+              "gpt-4o-mini",
+              "o3",
+              "gemini-2.0-flash",
+              "gpt-4.1",
+              "o1",
+              "gpt-4.1-mini",
+              "gpt-4.5-preview"
+            ],
+            "type": "string"
+          },
+          "reasoningEffort": {
+            "description": "Reasoning effort for models that support it (OpenAI)",
+            "enum": [
+              "low",
+              "medium",
+              "high"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "model"
+        ],
+        "type": "object"
+      },
+      "description": "Agent configurations",
+      "properties": {
+        "coder": {
+          "$ref": "#/definitions/agent"
+        },
+        "task": {
+          "$ref": "#/definitions/agent"
+        },
+        "title": {
+          "$ref": "#/definitions/agent"
+        }
+      },
+      "type": "object"
+    },
+    "contextPaths": {
+      "default": [
+        ".github/copilot-instructions.md",
+        ".cursorrules",
+        ".cursor/rules/",
+        "CLAUDE.md",
+        "CLAUDE.local.md",
+        "dhriti.md",
+        "dhriti.local.md",
+        "Dhriti.md",
+        "Dhriti.local.md",
+        "DHRITI.md",
+        "DHRITI.local.md"
+      ],
+      "description": "Context paths for the application",
+      "items": {
+        "type": "string"
+      },
+      "type": "array"
+    },
+    "data": {
+      "description": "Storage configuration",
+      "properties": {
+        "directory": {
+          "default": ".dhriti",
+          "description": "Directory where application data is stored",
+          "type": "string"
+        }
+      },
+      "required": [
+        "directory"
+      ],
+      "type": "object"
+    },
+    "debug": {
+      "default": false,
+      "description": "Enable debug mode",
+      "type": "boolean"
+    },
+    "debugLSP": {
+      "default": false,
+      "description": "Enable LSP debug mode",
+      "type": "boolean"
+    },
+    "gateway": {
+      "description": "Remote WebSocket gateway speaking the OpenAI Realtime protocol. When url is set, all LLM traffic routes through it and local OpenAI/Gemini API keys are not required.",
+      "properties": {
+        "apiKey": {
+          "description": "Optional bearer token sent to the gateway",
+          "type": "string"
+        },
+        "model": {
+          "description": "Optional model name sent as ?model= (defaults to stream model or gpt-realtime)",
+          "type": "string"
+        },
+        "url": {
+          "description": "WebSocket endpoint (ws:// or wss://) for the gateway",
+          "type": "string"
+        }
+      },
+      "required": [
+        "url"
+      ],
+      "type": "object"
+    },
+    "lsp": {
+      "additionalProperties": {
+        "description": "LSP configuration for a language",
+        "properties": {
+          "args": {
+            "description": "Command arguments for the LSP server",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "command": {
+            "description": "Command to execute for the LSP server",
+            "type": "string"
+          },
+          "disabled": {
+            "default": false,
+            "description": "Whether the LSP is disabled",
+            "type": "boolean"
+          },
+          "options": {
+            "description": "Additional options for the LSP server",
+            "type": "object"
+          }
+        },
+        "required": [
+          "command"
+        ],
+        "type": "object"
+      },
+      "description": "Language Server Protocol configurations",
+      "type": "object"
+    },
+    "mcpServers": {
+      "additionalProperties": {
+        "description": "MCP server configuration",
+        "properties": {
+          "args": {
+            "description": "Command arguments for the MCP server",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "command": {
+            "description": "Command to execute for the MCP server",
+            "type": "string"
+          },
+          "env": {
+            "description": "Environment variables for the MCP server",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "headers": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "description": "HTTP headers for SSE type MCP servers",
+            "type": "object"
+          },
+          "type": {
+            "default": "stdio",
+            "description": "Type of MCP server",
+            "enum": [
+              "stdio",
+              "sse"
+            ],
+            "type": "string"
+          },
+          "url": {
+            "description": "URL for SSE type MCP servers",
+            "type": "string"
+          }
+        },
+        "required": [
+          "command"
+        ],
+        "type": "object"
+      },
+      "description": "Model Control Protocol server configurations",
+      "type": "object"
+    },
+    "providers": {
+      "additionalProperties": {
+        "description": "Provider configuration",
+        "properties": {
+          "apiKey": {
+            "description": "API key for the provider",
+            "type": "string"
+          },
+          "disabled": {
+            "default": false,
+            "description": "Whether the provider is disabled",
+            "type": "boolean"
+          },
+          "provider": {
+            "description": "Provider type",
+            "enum": [
+              "openai",
+              "gemini"
+            ],
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "description": "LLM provider configurations",
+      "type": "object"
+    },
+    "tui": {
+      "description": "Terminal User Interface configuration",
+      "properties": {
+        "theme": {
+          "default": "dhriti",
+          "description": "TUI theme name",
+          "enum": [
+            "dhriti",
+            "catppuccin",
+            "dracula",
+            "flexoki",
+            "gruvbox",
+            "monokai",
+            "onedark",
+            "tokyonight",
+            "tron"
+          ],
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "wd": {
+      "description": "Working directory for the application",
+      "type": "string"
+    }
+  },
+  "title": "Dhriti Configuration",
+  "type": "object"
+}

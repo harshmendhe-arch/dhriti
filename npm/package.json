@@ -1,0 +1,48 @@
+{
+  "name": "dhriti",
+  "version": "0.1.0",
+  "description": "Terminal-based AI assistant with WebSocket gateway support (OpenAI Realtime / Gemini)",
+  "bin": {
+    "dhriti": "bin/dhriti.js"
+  },
+  "scripts": {
+    "postinstall": "node install.js"
+  },
+  "files": [
+    "bin/dhriti.js",
+    "install.js",
+    "README.md"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/harshmendhe-arch/dhriti.git"
+  },
+  "keywords": [
+    "ai",
+    "cli",
+    "terminal",
+    "llm",
+    "openai",
+    "gemini",
+    "websocket",
+    "gateway"
+  ],
+  "author": "harshmendhe-arch",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/harshmendhe-arch/dhriti/issues"
+  },
+  "homepage": "https://github.com/harshmendhe-arch/dhriti#readme",
+  "engines": {
+    "node": ">=18"
+  },
+  "os": [
+    "darwin",
+    "linux",
+    "win32"
+  ],
+  "cpu": [
+    "x64",
+    "arm64"
+  ]
+}

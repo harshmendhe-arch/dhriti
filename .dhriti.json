@@ -1,0 +1,18 @@
+{
+  "data": {},
+  "lsp": {
+    "gopls": {
+      "enabled": false,
+      "command": "gopls",
+      "args": null,
+      "options": null
+    }
+  },
+  "tui": {
+    "theme": "dhriti"
+  },
+  "shell": {},
+  "gateway": {
+    "url": ""
+  }
+}
