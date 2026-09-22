@@ -1,6 +1,6 @@
 {
   "name": "dhriti",
-  "version": "0.1.4",
+  "version": "0.1.5",
   "description": "Terminal-based AI assistant with WebSocket gateway support (OpenAI Realtime / Gemini)",
   "bin": {
     "dhriti": "bin/dhriti.js"
