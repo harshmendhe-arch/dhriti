@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log/slog"
+	neturl "net/url"
 	"os"
 	"path/filepath"
 	"strings"
@@ -264,6 +265,8 @@ func configureViper() {
 	viper.AddConfigPath(fmt.Sprintf("$XDG_CONFIG_HOME/%s", appName))
 	viper.AddConfigPath(fmt.Sprintf("$HOME/.config/%s", appName))
 	viper.SetEnvPrefix(strings.ToUpper(appName))
+	// DHRITI_GATEWAY_URL → gateway.url (dots are invalid in env names).
+	viper.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
 	viper.AutomaticEnv()
 }
 
@@ -359,7 +362,18 @@ func mergeLocalConfig(workingDir string) {
 
 	// Merge local config if it exists
 	if err := local.ReadInConfig(); err == nil {
-		viper.MergeConfigMap(local.AllSettings())
+		settings := local.AllSettings()
+		// An empty gateway.url in a local file must not disable a gateway
+		// configured globally (common: committed .dhriti.json with "url": "").
+		if g, ok := settings["gateway"].(map[string]any); ok {
+			if u, ok := g["url"].(string); ok && strings.TrimSpace(u) == "" {
+				delete(g, "url")
+				if len(g) == 0 {
+					delete(settings, "gateway")
+				}
+			}
+		}
+		viper.MergeConfigMap(settings)
 	}
 }
 
@@ -681,6 +695,10 @@ func updateCfgFile(updateCfg func(config *Config)) error {
 	if err := json.Unmarshal(configData, &userCfg); err != nil {
 		return fmt.Errorf("failed to parse config file: %w", err)
 	}
+	if userCfg == nil {
+		// File content was literally `null`.
+		userCfg = &Config{}
+	}
 
 	updateCfg(userCfg)
 
@@ -814,18 +832,45 @@ func SaveGeminiRefreshToken(token string) error {
 	})
 }
 
-// SaveGateway writes gateway.url / gateway.apiKey into config.
+// ValidateGatewayURL trims and checks a gateway endpoint. Only ws:// and
+// wss:// schemes are accepted so typos like https:// fail at login time
+// instead of with an opaque dial error later.
+func ValidateGatewayURL(raw string) (string, error) {
+	url := strings.TrimSpace(raw)
+	if url == "" {
+		return "", fmt.Errorf("gateway URL is empty")
+	}
+	u, err := neturl.Parse(url)
+	if err != nil {
+		return "", fmt.Errorf("invalid gateway URL: %w", err)
+	}
+	if u.Scheme != "ws" && u.Scheme != "wss" {
+		return "", fmt.Errorf("gateway URL must use ws:// or wss:// (got %q)", u.Scheme)
+	}
+	if u.Host == "" {
+		return "", fmt.Errorf("gateway URL is missing a host")
+	}
+	return u.String(), nil
+}
+
+// SaveGateway writes gateway.url / gateway.apiKey / gateway.model into config.
 // Empty apiKey means "use the OpenAI provider key as Bearer".
-func SaveGateway(url, apiKey string) error {
+func SaveGateway(url, apiKey, model string) error {
 	if cfg == nil {
 		return fmt.Errorf("config not loaded")
 	}
-	cfg.Gateway.URL = url
-	cfg.Gateway.APIKey = apiKey
+	clean, err := ValidateGatewayURL(url)
+	if err != nil {
+		return err
+	}
+	cfg.Gateway.URL = clean
+	cfg.Gateway.APIKey = strings.TrimSpace(apiKey)
+	cfg.Gateway.Model = strings.TrimSpace(model)
 
 	return updateCfgFile(func(c *Config) {
-		c.Gateway.URL = url
-		c.Gateway.APIKey = apiKey
+		c.Gateway.URL = clean
+		c.Gateway.APIKey = strings.TrimSpace(apiKey)
+		c.Gateway.Model = strings.TrimSpace(model)
 	})
 }
 

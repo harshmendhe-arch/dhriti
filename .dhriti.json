@@ -11,8 +11,5 @@
   "tui": {
     "theme": "dhriti"
   },
-  "shell": {},
-  "gateway": {
-    "url": ""
-  }
+  "shell": {}
 }

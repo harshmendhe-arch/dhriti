@@ -3,6 +3,7 @@ package provider
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	"github.com/opencode-ai/dhriti/internal/llm/models"
 	"github.com/opencode-ai/dhriti/internal/llm/tools"
@@ -78,7 +79,7 @@ type gatewayOptions struct {
 }
 
 func (g gatewayOptions) enabled() bool {
-	return g.url != ""
+	return strings.TrimSpace(g.url) != ""
 }
 
 type ProviderClientOption func(*providerClientOptions)

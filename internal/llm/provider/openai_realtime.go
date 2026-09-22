@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	neturl "net/url"
 	"strings"
 	"time"
 
@@ -17,7 +18,31 @@ import (
 const (
 	defaultOpenAIStreamModel = "gpt-realtime"
 	openAIRealtimeURL        = "wss://api.openai.com/v1/realtime"
+
+	realtimeHandshakeTimeout = 30 * time.Second
+	gatewayProbeTimeout      = 15 * time.Second
 )
+
+// buildRealtimeURL parses the endpoint and sets ?model= without clobbering
+// any query string already present on the gateway URL.
+func buildRealtimeURL(endpoint, model string) (string, error) {
+	u, err := neturl.Parse(endpoint)
+	if err != nil {
+		return "", fmt.Errorf("invalid realtime endpoint: %w", err)
+	}
+	if u.Scheme != "ws" && u.Scheme != "wss" {
+		return "", fmt.Errorf("realtime endpoint must use ws:// or wss:// (got %q)", u.Scheme)
+	}
+	if u.Host == "" {
+		return "", fmt.Errorf("realtime endpoint is missing a host")
+	}
+	q := u.Query()
+	if model != "" {
+		q.Set("model", model)
+	}
+	u.RawQuery = q.Encode()
+	return u.String(), nil
+}
 
 // realtimeEndpoint resolves the WebSocket URL, auth key, and model for a
 // Realtime session — gateway first, then official OpenAI defaults.
@@ -89,7 +114,10 @@ func (o *openaiClient) streamRealtime(ctx context.Context, messages []message.Me
 
 func (o *openaiClient) runRealtimeSession(ctx context.Context, messages []message.Message, toolList []tools.BaseTool, eventChan chan<- ProviderEvent, attempts *int) error {
 	endpointURL, apiKey, model := o.realtimeEndpoint()
-	url := fmt.Sprintf("%s?model=%s", endpointURL, model)
+	url, err := buildRealtimeURL(endpointURL, model)
+	if err != nil {
+		return err
+	}
 	header := http.Header{}
 	if apiKey != "" {
 		header.Set("Authorization", "Bearer "+apiKey)
@@ -146,11 +174,12 @@ func (o *openaiClient) sendViaGateway(ctx context.Context, messages []message.Me
 }
 
 func (o *openaiClient) realtimeHandshake(conn *websocket.Conn, toolList []tools.BaseTool) error {
-	// Wait for session.created
+	// Wait for session.created — bound the wait so a silent gateway cannot hang forever.
+	_ = conn.SetReadDeadline(time.Now().Add(realtimeHandshakeTimeout))
 	for {
 		_, raw, err := conn.ReadMessage()
 		if err != nil {
-			return err
+			return fmt.Errorf("realtime handshake: %w", err)
 		}
 		var msg struct {
 			Type string `json:"type"`
@@ -165,6 +194,8 @@ func (o *openaiClient) realtimeHandshake(conn *websocket.Conn, toolList []tools.
 			return fmt.Errorf("realtime handshake error: %s", string(raw))
 		}
 	}
+	// Clear the deadline for the streaming read loop.
+	_ = conn.SetReadDeadline(time.Time{})
 
 	session := map[string]any{
 		"type":              "realtime",
@@ -180,6 +211,62 @@ func (o *openaiClient) realtimeHandshake(conn *websocket.Conn, toolList []tools.
 		"type":    "session.update",
 		"session": session,
 	})
+}
+
+// ProbeRealtimeGateway dials the gateway and waits briefly for session.created
+// so `dhriti login` can verify URL, auth, and protocol before saving config.
+func ProbeRealtimeGateway(ctx context.Context, endpoint, apiKey, model string) error {
+	if model == "" {
+		model = defaultOpenAIStreamModel
+	}
+	url, err := buildRealtimeURL(endpoint, model)
+	if err != nil {
+		return err
+	}
+	header := http.Header{}
+	if apiKey != "" {
+		header.Set("Authorization", "Bearer "+apiKey)
+	}
+
+	ctx, cancel := context.WithTimeout(ctx, gatewayProbeTimeout)
+	defer cancel()
+
+	conn, err := dialWebSocket(ctx, url, header)
+	if err != nil {
+		return err
+	}
+	defer closeWebSocket(conn)
+
+	deadline := time.Now().Add(gatewayProbeTimeout)
+	if d, ok := ctx.Deadline(); ok {
+		deadline = d
+	}
+	_ = conn.SetReadDeadline(deadline)
+
+	for {
+		_, raw, err := conn.ReadMessage()
+		if err != nil {
+			return fmt.Errorf("gateway did not complete handshake: %w", err)
+		}
+		var msg struct {
+			Type  string `json:"type"`
+			Error *struct {
+				Message string `json:"message"`
+			} `json:"error"`
+		}
+		if err := json.Unmarshal(raw, &msg); err != nil {
+			continue
+		}
+		switch msg.Type {
+		case "session.created":
+			return nil
+		case "error":
+			if msg.Error != nil && msg.Error.Message != "" {
+				return fmt.Errorf("gateway error: %s", msg.Error.Message)
+			}
+			return fmt.Errorf("gateway error: %s", string(raw))
+		}
+	}
 }
 
 func (o *openaiClient) realtimeTools(toolList []tools.BaseTool) []map[string]any {

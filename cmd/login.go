@@ -10,6 +10,7 @@ import (
 
 	"github.com/opencode-ai/dhriti/internal/auth"
 	"github.com/opencode-ai/dhriti/internal/config"
+	"github.com/opencode-ai/dhriti/internal/llm/provider"
 	"github.com/spf13/cobra"
 )
 
@@ -169,17 +170,45 @@ func loginGemini(in *bufio.Reader, openBrowser bool) error {
 
 func loginGateway(in *bufio.Reader) error {
 	fmt.Println("\n── WebSocket gateway (optional) ──")
-	url, err := prompt(in, "Gateway URL wss://… (empty to skip)")
+	raw, err := prompt(in, "Gateway URL wss://… (empty to skip)")
 	if err != nil {
 		return err
 	}
-	if url == "" {
+	if strings.TrimSpace(raw) == "" {
 		fmt.Println("Skipped gateway.")
 		return nil
 	}
+
+	url, err := config.ValidateGatewayURL(raw)
+	if err != nil {
+		return err
+	}
+
 	key, err := prompt(in, "Gateway API key (empty = use OpenAI key from login)")
 	if err != nil {
 		return err
 	}
-	return config.SaveGateway(url, key)
+	model, err := prompt(in, "Gateway model (empty = gpt-realtime)")
+	if err != nil {
+		return err
+	}
+
+	bearer := strings.TrimSpace(key)
+	if bearer == "" {
+		bearer = config.GatewayBearerToken()
+	}
+	if bearer == "" {
+		fmt.Println("Warning: no API key set; gateway will be dialed without Authorization.")
+	}
+
+	fmt.Print("Testing WebSocket connection… ")
+	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+	defer cancel()
+	if err := provider.ProbeRealtimeGateway(ctx, url, bearer, model); err != nil {
+		fmt.Println("failed")
+		return fmt.Errorf("gateway connection test failed: %w", err)
+	}
+	fmt.Println("ok")
+
+	return config.SaveGateway(url, key, model)
 }

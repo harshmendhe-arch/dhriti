@@ -6,6 +6,22 @@ import (
 	"github.com/opencode-ai/dhriti/internal/llm/models"
 )
 
+func TestValidateGatewayURL(t *testing.T) {
+	ok, err := ValidateGatewayURL("  wss://gw.example.com/realtime  ")
+	if err != nil {
+		t.Fatalf("valid URL rejected: %v", err)
+	}
+	if ok != "wss://gw.example.com/realtime" {
+		t.Fatalf("got %q", ok)
+	}
+
+	for _, bad := range []string{"", "https://gw.example.com", "wss://", "not a url"} {
+		if _, err := ValidateGatewayURL(bad); err == nil {
+			t.Fatalf("expected error for %q", bad)
+		}
+	}
+}
+
 func TestEnsureRequiredAgentsFillsMissingEntries(t *testing.T) {
 	cfg = &Config{}
 
